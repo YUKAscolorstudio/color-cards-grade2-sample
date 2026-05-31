@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>慣用色名カード 2級 無料体験版 | YUKA's Color Studio</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>* { margin: 0; padding: 0; box-sizing: border-box; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState, useEffect } = React;
+
+const colors = [
+  { name: "鴇色", reading: "ときいろ", hex: "#F0A0A0", systematic: "明るい紫みの赤", munsell: "7RP 7.5/8", origin: "和名", category: "赤・ピンク系", episode: "トキの翼の内側や風切羽、尾羽などの明るいピンク。近世和装で流行した色名。昔は日本各地に生息していたトキに由来する。" },
+  { name: "新橋色", reading: "しんばしいろ", hex: "#40B0A8", systematic: "明るい緑みの青", munsell: "2.5B 6.5/5.5", origin: "和名", category: "青系", episode: "明治末から大正にかけて流行した東京・新橋の芸者衆が好んだ着物の色。新しい化学染料をいち早く取り入れたためローカルな町名が色名になった珍しい例。" },
+  { name: "江戸紫", reading: "えどむらさき", hex: "#602880", systematic: "こい青みの紫", munsell: "3P 3.5/7", origin: "和名", category: "紫系", episode: "紫を染める紫草は武蔵野によく知られた。江戸っ子自慢の色で、歌舞伎の狂歌や川柳にも登場。伝統的な京紫より青みがあるといわれている。" },
+  { name: "バーガンディー", reading: "Burgundy", hex: "#4A0010", systematic: "ごく暗い紫みの赤", munsell: "10RP 2/2.5", origin: "洋名", category: "赤・ピンク系", episode: "フランスのブルゴーニュ産の赤ワインのような色を表す色名。バーガンディーはブルゴーニュの英語名。色名の誕生は1915年と新しい。" },
+  { name: "マラカイトグリーン", reading: "Malachite green", hex: "#408860", systematic: "こい緑", munsell: "4G 4.5/9", origin: "洋名", category: "緑系", episode: "マラカイトは日本語で孔雀石と呼ばれる鉱石。古代エジプトではこの緑色が知られていて、エジプト人が目を守るまじないにこの緑色を目まわりに塗ったのがアイラインの始まりだという。" },
+  { name: "ライラック", reading: "Lilac", hex: "#C090C0", systematic: "やわらかい紫", munsell: "6P 7/6", origin: "洋名", category: "紫系", episode: "ライラックの花の色からとられた薄紫の色名。英語の色名として定着したのは1775年前後。単にライラックの花のような色という一般的な色名だったと考えられる。" },
+];
+
+const STORAGE_KEY = "grade2_sample_wrong_ids";
+
+function getLuma(hex){const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;return 0.299*r+0.587*g+0.114*b;}
+function rgba(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
+
+function App() {
+  const [idx,setIdx]=useState(0);
+  const [flipped,setFlipped]=useState(false);
+  const [mode,setMode]=useState("study");
+  const [revealed,setRevealed]=useState(false);
+  const [animDir,setAnimDir]=useState(null);
+  const [quizResult,setQuizResult]=useState(null);
+  const [wrongIds,setWrongIds]=useState(()=>{
+    try{const s=localStorage.getItem(STORAGE_KEY);return s?new Set(JSON.parse(s)):new Set();}catch{return new Set();}
+  });
+
+  useEffect(()=>{
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify([...wrongIds]));}catch{}
+  },[wrongIds]);
+
+  const list = mode==="review" ? colors.filter(c=>wrongIds.has(c.name)) : colors;
+  const card = list[idx%Math.max(list.length,1)];
+
+  const dark=getLuma(card.hex)<0.42;
+  const tp=dark?"#fff":"#1a1208";
+  const ts=dark?"rgba(255,255,255,0.6)":"rgba(26,18,8,0.45)";
+  const gb=dark?"rgba(255,255,255,0.13)":"rgba(255,255,255,0.55)";
+  const gbd=dark?"rgba(255,255,255,0.18)":"rgba(255,255,255,0.8)";
+
+  const go=(d)=>{
+    setAnimDir(d>0?"left":"right");
+    setFlipped(false);setRevealed(false);setQuizResult(null);
+    setTimeout(()=>{setIdx(p=>(p+d+list.length)%list.length);setAnimDir(null);},180);
+  };
+
+  const switchMode=(m)=>{setMode(m);setIdx(0);setFlipped(false);setRevealed(false);setQuizResult(null);};
+
+  const markResult=(correct)=>{
+    setQuizResult(correct?"correct":"wrong");
+    const next=new Set(wrongIds);
+    if(correct){next.delete(card.name);}else{next.add(card.name);}
+    setWrongIds(next);
+  };
+
+  return (
+    <div style={{minHeight:"100vh",background:`radial-gradient(ellipse at 30% 20%,${rgba(card.hex,0.18)} 0%,transparent 60%),radial-gradient(ellipse at 70% 80%,${rgba(card.hex,0.10)} 0%,transparent 50%),#FAF7F2`,display:"flex",flexDirection:"column",alignItems:"center",padding:"20px 16px 32px",fontFamily:"'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',Georgia,serif",transition:"background 0.6s"}}>
+
+      {/* Header */}
+      <div style={{textAlign:"center",marginBottom:10}}>
+        <div style={{fontSize:10,letterSpacing:"0.3em",color:"#B0A090",textTransform:"uppercase",marginBottom:2}}>Color Aptitude Test · Grade 2</div>
+        <div style={{fontSize:20,fontWeight:"bold",color:"#2A2010",letterSpacing:"0.08em"}}>慣用色名カード</div>
+      </div>
+
+      {/* 無料体験バッジ */}
+      <div style={{background:"#FFF8F0",border:"1.5px solid #E8C89A",borderRadius:20,padding:"4px 16px",fontSize:11,color:"#8B5E2A",letterSpacing:"0.08em",marginBottom:14}}>
+        ✦ 無料体験版 · 6色 ✦
+      </div>
+
+      {/* Mode tabs */}
+      <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",justifyContent:"center"}}>
+        {[["📖 学習","study"],["🎯 暗記","quiz"],["🔁 復習","review"]].map(([l,v])=>(
+          <button key={v} onClick={()=>switchMode(v)} style={{padding:"5px 14px",borderRadius:20,border:`1.5px solid ${mode===v?"#5A3A20":"#DDD8CC"}`,background:mode===v?"#5A3A20":"white",color:mode===v?"white":(v==="review"&&wrongIds.size>0?"#E05040":"#888"),fontSize:12,cursor:"pointer",fontWeight:v==="review"&&wrongIds.size>0?"bold":"normal"}}>
+            {l}{v==="review"&&wrongIds.size>0?` (${wrongIds.size})`:""}
+          </button>
+        ))}
+      </div>
+
+      {/* 復習リストが空 */}
+      {mode==="review"&&wrongIds.size===0&&(
+        <div style={{width:"min(340px,92vw)",padding:"32px 24px",textAlign:"center",background:"white",borderRadius:20,boxShadow:"0 4px 24px rgba(0,0,0,0.06)",marginBottom:16}}>
+          <div style={{fontSize:32,marginBottom:12}}>🎉</div>
+          <div style={{fontSize:16,fontWeight:"bold",color:"#2A2010",marginBottom:8}}>復習リストは空です</div>
+          <div style={{fontSize:13,color:"#8B7A60"}}>暗記モードで間違えた色がここに溜まります</div>
+        </div>
+      )}
+
+      {/* Card */}
+      {(mode!=="review"||wrongIds.size>0)&&(
+        <div onClick={()=>{if(mode==="study")setFlipped(f=>!f);else if(!revealed)setRevealed(true);}} style={{width:"min(340px,92vw)",minHeight:440,borderRadius:24,background:card.hex,boxShadow:`0 24px 64px ${rgba(card.hex,0.45)},0 4px 16px rgba(0,0,0,0.10)`,cursor:(mode!=="study"&&revealed)?"default":"pointer",position:"relative",overflow:"hidden",display:"flex",flexDirection:"column",justifyContent:"space-between",transform:animDir?"translateX("+(animDir==="left"?"-30px":"30px")+")":"none",opacity:animDir?0:1,transition:animDir?"transform 0.18s,opacity 0.18s":"box-shadow 0.4s,background 0.4s",
+          outline:quizResult==="correct"?"3px solid #44BB44":quizResult==="wrong"?"3px solid #EE4444":"none"
+        }}>
+          <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(255,255,255,0.07)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",bottom:-30,left:-30,width:100,height:100,borderRadius:"50%",background:"rgba(255,255,255,0.05)",pointerEvents:"none"}}/>
+
+          <div style={{display:"flex",justifyContent:"space-between",padding:"16px 18px 0",position:"relative",zIndex:1}}>
+            <div style={{background:card.origin==="和名"?"rgba(180,100,60,0.25)":"rgba(60,100,180,0.25)",border:`1px solid ${gbd}`,borderRadius:10,padding:"3px 10px",fontSize:10,color:card.origin==="和名"?(dark?"#FFCCA0":"#8B4513"):(dark?"#A0C8FF":"#1A3A8B"),letterSpacing:"0.1em"}}>{card.origin}</div>
+            <div style={{background:gb,border:`1px solid ${gbd}`,borderRadius:10,padding:"3px 10px",fontSize:10,color:ts}}>{card.category}</div>
+          </div>
+
+          <div style={{padding:"24px 24px 0",position:"relative",zIndex:1}}>
+            {(mode==="quiz"||mode==="review")&&!revealed?(
+              <div>
+                <div style={{width:80,height:80,borderRadius:16,background:"rgba(255,255,255,0.25)",border:`2px solid ${gbd}`,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>?</div>
+                <div style={{fontSize:14,color:ts}}>この色の名前は？</div>
+                <div style={{marginTop:12,fontSize:12,color:ts,background:gb,border:`1px solid ${gbd}`,borderRadius:10,padding:"6px 14px",display:"inline-block"}}>タップして答えを見る</div>
+              </div>
+            ):(
+              <div>
+                <div style={{fontSize:card.name.length>5?32:card.name.length>4?40:52,fontWeight:"bold",color:tp,lineHeight:1.1,letterSpacing:"0.05em",textShadow:dark?"0 2px 12px rgba(0,0,0,0.25)":"0 2px 8px rgba(255,255,255,0.6)"}}>{card.name}</div>
+                <div style={{fontSize:13,color:ts,marginTop:6,letterSpacing:"0.12em"}}>{card.reading}</div>
+              </div>
+            )}
+          </div>
+
+          <div style={{margin:"16px 24px",height:1,background:dark?"rgba(255,255,255,0.2)":"rgba(0,0,0,0.08)"}}/>
+
+          {mode==="study"&&!flipped&&(
+            <div style={{padding:"0 24px 28px",position:"relative",zIndex:1}}>
+              <div style={{fontSize:12,color:ts,marginBottom:10}}>タップして詳細を見る ↓</div>
+              <div style={{background:gb,border:`1px solid ${gbd}`,borderRadius:12,padding:"8px 14px",display:"inline-block"}}>
+                <span style={{fontSize:10,color:ts}}>系統色名　</span>
+                <span style={{fontSize:14,color:tp,fontWeight:"bold"}}>{card.systematic}</span>
+              </div>
+            </div>
+          )}
+          {(mode==="study"&&flipped)||((mode==="quiz"||mode==="review")&&revealed)?(
+            <div style={{padding:"0 24px 20px",display:"flex",flexDirection:"column",gap:8,position:"relative",zIndex:1}}>
+              <div style={{background:gb,border:`1px solid ${gbd}`,borderRadius:12,padding:"10px 14px"}}>
+                <div style={{fontSize:10,color:ts,marginBottom:3}}>系統色名</div>
+                <div style={{fontSize:14,color:tp,fontWeight:"bold"}}>{card.systematic}</div>
+              </div>
+              <div style={{background:gb,border:`1px solid ${gbd}`,borderRadius:12,padding:"10px 14px"}}>
+                <div style={{fontSize:10,color:ts,marginBottom:3}}>マンセル値</div>
+                <div style={{fontSize:13,color:tp,fontFamily:"monospace",fontWeight:"bold"}}>{card.munsell}</div>
+              </div>
+              <div style={{background:gb,border:`1px solid ${gbd}`,borderRadius:12,padding:"10px 14px"}}>
+                <div style={{fontSize:10,color:ts,marginBottom:3}}>エピソード・由来</div>
+                <div style={{fontSize:11,color:tp,lineHeight:1.7}}>{card.episode}</div>
+              </div>
+            </div>
+          ):(mode==="quiz"||mode==="review")&&!revealed?(
+            <div style={{padding:"0 24px 28px"}}><div style={{fontSize:12,color:ts}}>タップして答えを確認</div></div>
+          ):null}
+        </div>
+      )}
+
+      {/* 正解・不正解ボタン */}
+      {(mode==="quiz"||mode==="review")&&revealed&&!quizResult&&(
+        <div style={{display:"flex",gap:12,marginTop:16,width:"min(340px,92vw)"}}>
+          <button onClick={()=>markResult(false)} style={{flex:1,padding:"12px 0",borderRadius:14,border:"2px solid #EE4444",background:"white",color:"#EE4444",fontSize:14,fontWeight:"bold",cursor:"pointer"}}>✗ 間違えた</button>
+          <button onClick={()=>markResult(true)} style={{flex:1,padding:"12px 0",borderRadius:14,border:"2px solid #44BB44",background:"white",color:"#44BB44",fontSize:14,fontWeight:"bold",cursor:"pointer"}}>○ 正解！</button>
+        </div>
+      )}
+      {(mode==="quiz"||mode==="review")&&quizResult&&(
+        <div style={{marginTop:12,padding:"8px 20px",borderRadius:12,background:quizResult==="correct"?"rgba(68,187,68,0.1)":"rgba(238,68,68,0.1)",border:`1px solid ${quizResult==="correct"?"#44BB44":"#EE4444"}`,fontSize:13,color:quizResult==="correct"?"#228822":"#CC2222",fontWeight:"bold"}}>
+          {quizResult==="correct"?"✓ 正解！リストから削除しました":"✗ 復習リストに追加しました"}
+        </div>
+      )}
+
+      {/* Navigation */}
+      {(mode!=="review"||wrongIds.size>0)&&(
+        <>
+          <div style={{display:"flex",alignItems:"center",gap:24,marginTop:16}}>
+            <button onClick={()=>go(-1)} style={{width:44,height:44,borderRadius:"50%",border:"1.5px solid #DDD8CC",background:"white",fontSize:18,cursor:"pointer",color:"#666",boxShadow:"0 2px 8px rgba(0,0,0,0.07)"}}>←</button>
+            <div style={{fontSize:14,color:"#8B7A60",fontWeight:"bold"}}>{(idx%list.length)+1} <span style={{fontSize:11,color:"#C0B090"}}>/ {list.length}</span></div>
+            <button onClick={()=>go(1)} style={{width:44,height:44,borderRadius:"50%",border:"1.5px solid #DDD8CC",background:"white",fontSize:18,cursor:"pointer",color:"#666",boxShadow:"0 2px 8px rgba(0,0,0,0.07)"}}>→</button>
+          </div>
+          <div style={{width:"min(340px,92vw)",height:3,background:"#EDE8E0",borderRadius:2,marginTop:12,overflow:"hidden"}}>
+            <div style={{height:"100%",borderRadius:2,background:card.hex,width:`${((idx%list.length)+1)/list.length*100}%`,transition:"width 0.3s",boxShadow:`0 0 6px ${rgba(card.hex,0.6)}`}}/>
+          </div>
+        </>
+      )}
+
+      {/* CTA */}
+      <div style={{width:"min(340px,92vw)",marginTop:28,background:"white",borderRadius:20,padding:"20px 24px",boxShadow:"0 4px 24px rgba(0,0,0,0.07)",border:"1px solid #EDE8E0",textAlign:"center"}}>
+        <div style={{fontSize:11,color:"#B0A090",letterSpacing:"0.15em",marginBottom:6}}>FULL VERSION</div>
+        <div style={{fontSize:16,fontWeight:"bold",color:"#2A2010",marginBottom:8,lineHeight:1.6}}>
+          全63色・完全版を<br/>noteで販売中
+        </div>
+        <div style={{fontSize:12,color:"#8B7A60",marginBottom:16,lineHeight:1.8}}>
+          和名31色・洋名32色<br/>
+          学習・暗記・復習モード付き<br/>
+          マンセル値・エピソード収録
+        </div>
+        <a href="https://note.com" target="_blank" rel="noopener noreferrer" style={{display:"block",background:"#2A2010",color:"white",borderRadius:14,padding:"12px 0",fontSize:13,fontWeight:"bold",letterSpacing:"0.08em",textDecoration:"none"}}>
+          noteで全63色を見る →
+        </a>
+        <div style={{fontSize:10,color:"#C0B090",marginTop:10}}>購入者限定URLをお届けします</div>
+      </div>
+
+      <div style={{marginTop:20,fontSize:10,color:"#C8C0B0",letterSpacing:"0.2em"}}>YUKA's Color Studio · Grade 2 Sample</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
